@@ -1,6 +1,3 @@
-# Save this file as "kinetics_app.py"
-# In your terminal, run: streamlit run kinetics_app.py
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
