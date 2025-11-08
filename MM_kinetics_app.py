@@ -1,10 +1,13 @@
+# Save this file as "kinetics_app.py"
+# In your terminal, run: streamlit run kinetics_app.py
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 import numpy as np
-import io
+import io  # <-- This library is now essential
 
 # --- 1. Page Setup ---
 st.set_page_config(
@@ -13,7 +16,6 @@ st.set_page_config(
 )
 st.title("🧪 Enzyme Kinetics Analyzer")
 st.subheader("Michaelis-Menten vs. Lineweaver-Burk")
-st.write("Upload your data to see both non-linear and linear fits.")
 
 # --- 2. Define Units (as a sidebar input) ---
 st.sidebar.header("Settings")
@@ -30,20 +32,37 @@ v_units = st.sidebar.selectbox(
     index=0
 )
 
-# --- 3. File Uploader ---
-uploaded_file = st.file_uploader("Upload your .csv data file")
+# --- (MODIFIED) 3. Data Entry ---
+st.write("Paste your data below (must include header):")
+
+# Create a sample string for the default text
+default_data = "Substrate_Concentration,Initial_Velocity\n1,17.1\n2,29.5\n4,51.2\n8,73.9\n16,102.1\n32,118.5\n50,130.2"
+
+data_string = st.text_area(
+    "Data Input", 
+    default_data, 
+    height=200,
+    help="Must have 'Substrate_Concentration' and 'Initial_Velocity' columns."
+)
+# --- (END MODIFIED) ---
+
 
 # --- 4. Main Analysis ---
-if uploaded_file is not None:
+# --- (MODIFIED) ---
+# Run analysis if the data string is not empty
+if data_string:
     
     try:
-        data = pd.read_csv(uploaded_file)
+        # Use io.StringIO to read the string as a file
+        data_file_object = io.StringIO(data_string)
+        data = pd.read_csv(data_file_object)
         S = data['Substrate_Concentration']
         v = data['Initial_Velocity']
     except Exception as e:
-        st.error(f"Error reading file: {e}")
-        st.warning("Please ensure your file has columns: 'Substrate_Concentration' and 'Initial_Velocity'")
+        st.error(f"Error reading data: {e}")
+        st.warning("Please check your data format. Ensure it has columns 'Substrate_Concentration' and 'Initial_Velocity'.")
         st.stop()
+    # --- (END MODIFIED) ---
 
     # --- Analysis Logic ---
     def michaelis_menten(S, Vmax, Km):
@@ -75,6 +94,7 @@ if uploaded_file is not None:
     # --- 5. Display Results ---
     st.header("📊 Results")
     col1, col2 = st.columns(2) 
+    # (Rest of this section is unchanged...)
 
     with col1:
         st.subheader("Method 1: Non-linear M-M")
@@ -91,7 +111,7 @@ if uploaded_file is not None:
     fig_col1, fig_col2 = st.columns(2)
 
     with fig_col1:
-        # Plot 1: Interactive Michaelis-Menten Plot
+        # Plot 1 (Unchanged)
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(
             x=S, y=v, mode='markers', name='Experimental Data',
@@ -109,18 +129,13 @@ if uploaded_file is not None:
             yaxis_title=f'Initial Velocity (v) ({v_units})',
             legend_title="Legend"
         )
-        
-        # --- (MODIFIED) ---
-        # Add the 0,0 lines to the M-M plot
         fig1.update_yaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         fig1.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
-        # --- (END MODIFIED) ---
-        
         st.plotly_chart(fig1, use_container_width=True)
 
 
     with fig_col2:
-        # Plot 2: Interactive Lineweaver-Burk Plot
+        # Plot 2 (Unchanged)
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
             x=inv_S, y=inv_v, mode='markers', name='Transformed Data',
@@ -142,11 +157,11 @@ if uploaded_file is not None:
         fig2.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         st.plotly_chart(fig2, use_container_width=True)
 
-# --- How to use guide ---
+# --- (MODIFIED) How to use guide ---
 st.header("How to Use")
 st.markdown("""
-1.  **Prepare your data**: Create a `.csv` file with two columns: `Substrate_Concentration` and `Initial_Velocity`.
-2.  **Upload**: Click the 'Browse files' button or drag your file onto the uploader.
+1.  **Copy your data**: Copy your data from Excel or Google Sheets (including the `Substrate_Concentration` and `Initial_Velocity` headers).
+2.  **Paste**: Paste your data into the text box above, replacing the sample data.
 3.  **Analyze**: The app will automatically update with your results and plots.
 4.  **Settings**: Use the sidebar to change the units that are displayed on the plots.
 """)
