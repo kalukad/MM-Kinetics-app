@@ -49,7 +49,7 @@ with col1:
     )
 with col2:
     v_string = st.text_area(
-        "V0 Column (Initial_Velocity)", 
+        "$V_0$ Column (Initial_Velocity)",  # <-- MODIFIED
         default_v, 
         height=200,
         help="Paste one column of numbers, one per line."
@@ -58,25 +58,20 @@ with col2:
 
 
 # --- 4. Main Analysis ---
-# --- (MODIFIED) ---
-# Run analysis if both strings are not empty
 if s_string and v_string:
     
     try:
-        # Split the strings by newlines and filter out empty strings
         s_vals = [val for val in s_string.split() if val]
         v_vals = [val for val in v_string.split() if val]
 
-        # Check for mismatched lengths
         if len(s_vals) != len(v_vals):
-            st.error(f"Data Mismatch: You have {len(s_vals)} [S] values but {len(v_vals)} V0 values. Please check your data.")
+            st.error(f"Data Mismatch: You have {len(s_vals)} [S] values but {len(v_vals)} $V_0$ values. Please check your data.") # <-- MODIFIED
             st.stop()
         
-        # Create the DataFrame
         data = pd.DataFrame({
             'Substrate_Concentration': s_vals,
             'Initial_Velocity': v_vals
-        }).astype(float) # Convert all to numbers
+        }).astype(float)
         
         S = data['Substrate_Concentration']
         v = data['Initial_Velocity']
@@ -87,7 +82,6 @@ if s_string and v_string:
     except Exception as e:
         st.error(f"Error reading data: {e}")
         st.stop()
-    # --- (END MODIFIED) ---
 
     # --- Analysis Logic ---
     def michaelis_menten(S, Vmax, Km):
@@ -119,21 +113,17 @@ if s_string and v_string:
     # --- 5. Display Results ---
     st.header("📊 Results")
     col1, col2 = st.columns(2) 
-
     with col1:
         st.subheader("Method 1: Non-linear M-M")
         st.metric(label=f"Vmax ({v_units})", value=f"{Vmax_fit:.2f}")
         st.metric(label=f"Km ({S_units})", value=f"{Km_fit:.2f}")
-
     with col2:
         st.subheader("Method 2: Linear L-B")
         st.metric(label=f"Vmax ({v_units})", value=f"{Vmax_lb:.2f}")
         st.metric(label=f"Km ({S_units})", value=f"{Km_lb:.2f}")
 
     st.header("📈 Plots")
-    
     fig_col1, fig_col2 = st.columns(2)
-
     with fig_col1:
         # Plot 1: Interactive Michaelis-Menten Plot
         fig1 = go.Figure()
@@ -156,8 +146,6 @@ if s_string and v_string:
         fig1.update_yaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         fig1.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         st.plotly_chart(fig1, use_container_width=True)
-
-
     with fig_col2:
         # Plot 2: Interactive Lineweaver-Burk Plot
         fig2 = go.Figure()
@@ -186,7 +174,7 @@ st.header("How to Use")
 st.markdown("""
 1.  **Copy your data**: Copy your `[S]` column from Excel/Sheets.
 2.  **Paste**: Paste into the `[S] Column` box.
-3.  **Repeat**: Copy your `V0` column and paste it into the `V0 Column` box.
+3.  **Repeat**: Copy your `$V_0$` column and paste it into the `$V_0$ Column` box.
 4.  **Analyze**: The app will automatically update. Make sure you have the same number of values in each column!
 5.  **Settings**: Use the sidebar to change the units.
 """)
