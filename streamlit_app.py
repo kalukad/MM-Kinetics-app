@@ -1,7 +1,9 @@
+# Save this file as "kinetics_app.py"
+# In your terminal, run: streamlit run kinetics_app.py
 
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go  # <-- IMPORT PLOTLY
+import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 import numpy as np
@@ -18,8 +20,24 @@ st.write("Upload your data to see both non-linear and linear fits.")
 
 # --- 2. Define Units (as a sidebar input) ---
 st.sidebar.header("Settings")
-S_units = st.sidebar.text_input("Substrate Units", "mM")
-v_units = st.sidebar.text_input("Velocity Units", "μM/min")
+
+# --- (MODIFIED) ---
+# Create lists of common units
+s_unit_options = ['mM', 'μM', 'M', 'nM']
+v_unit_options = ['μM/min', 'μM/s', 'mM/min', 'mM/s', 'M/min', 'M/s', 'nM/min', 'nM/s']
+
+# Create dropdown menus
+S_units = st.sidebar.selectbox(
+    "Substrate Units", 
+    options=s_unit_options, 
+    index=0  # 'mM' is the default
+) 
+v_units = st.sidebar.selectbox(
+    "Velocity Units", 
+    options=v_unit_options, 
+    index=0  # 'μM/min' is the default
+)
+# --- (END MODIFIED) ---
 
 # --- 3. File Uploader ---
 uploaded_file = st.file_uploader("Upload your .csv data file")
@@ -79,85 +97,54 @@ if uploaded_file is not None:
 
     st.header("📈 Plots")
     
-    # Use columns to show plots side-by-side
     fig_col1, fig_col2 = st.columns(2)
 
     with fig_col1:
-        # === (NEW) Plot 1: Interactive Michaelis-Menten Plot ===
-        
-        # Create the plot figure
+        # Plot 1: Interactive Michaelis-Menten Plot
         fig1 = go.Figure()
-
-        # Add the raw data points
         fig1.add_trace(go.Scatter(
-            x=S, y=v, 
-            mode='markers', 
-            name='Experimental Data',
+            x=S, y=v, mode='markers', name='Experimental Data',
             marker=dict(color='red', size=8)
         ))
-        
-        # Add the fitted line
         S_fit = np.linspace(0, max(S), 100)
         v_fit = michaelis_menten(S_fit, Vmax_fit, Km_fit)
         fig1.add_trace(go.Scatter(
-            x=S_fit, y=v_fit,
-            mode='lines',
-            name='Michaelis-Menten Fit',
+            x=S_fit, y=v_fit, mode='lines', name='Michaelis-Menten Fit',
             line=dict(color='blue')
         ))
-        
-        # Update layout
         fig1.update_layout(
             title='Michaelis-Menten Fit',
             xaxis_title=f'Substrate Concentration [S] ({S_units})',
             yaxis_title=f'Initial Velocity (v) ({v_units})',
             legend_title="Legend"
         )
-        
-        # Display with Streamlit
         st.plotly_chart(fig1, use_container_width=True)
 
 
     with fig_col2:
-        # === (NEW) Plot 2: Interactive Lineweaver-Burk Plot ===
-        
+        # Plot 2: Interactive Lineweaver-Burk Plot
         fig2 = go.Figure()
-        
-        # Add the transformed data points
         fig2.add_trace(go.Scatter(
-            x=inv_S, y=inv_v,
-            mode='markers',
-            name='Transformed Data',
+            x=inv_S, y=inv_v, mode='markers', name='Transformed Data',
             marker=dict(color='purple', size=8)
         ))
-        
-        # Add the fitted line
         x_fit = np.linspace(min(0, x_intercept_val * 1.1), max(inv_S) * 1.1, 100)
         y_fit = slope * x_fit + intercept
         fig2.add_trace(go.Scatter(
-            x=x_fit, y=y_fit,
-            mode='lines',
-            name='Linear Fit',
+            x=x_fit, y=y_fit, mode='lines', name='Linear Fit',
             line=dict(color='green')
         ))
-        
-        # Update layout
         fig2.update_layout(
             title='Lineweaver-Burk Fit',
             xaxis_title=f'1 / [S]   (1 / {S_units})',
             yaxis_title=f'1 / v   (1 / {v_units})',
             legend_title="Legend"
         )
-        
-        # Add the 0,0 lines
         fig2.update_yaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         fig2.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
-        
-        # Display with Streamlit
         st.plotly_chart(fig2, use_container_width=True)
 
-
-# --- Add a "how to" guide at the bottom (Unchanged) ---
+# --- How to use guide (Unchanged) ---
 st.header("How to Use")
 st.markdown("""
 1.  **Prepare your data**: Create a `.csv` file with two columns: `Substrate_Concentration` and `Initial_Velocity`.
@@ -165,3 +152,4 @@ st.markdown("""
 3.  **Analyze**: The app will automatically update with your results and plots.
 4.  **Settings**: Use the sidebar to change the units that are displayed on the plots.
 """)
+
