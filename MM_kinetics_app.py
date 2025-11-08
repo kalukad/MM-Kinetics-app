@@ -17,24 +17,18 @@ st.write("Upload your data to see both non-linear and linear fits.")
 
 # --- 2. Define Units (as a sidebar input) ---
 st.sidebar.header("Settings")
-
-# --- (MODIFIED) ---
-# Create lists of common units
 s_unit_options = ['mM', 'μM', 'M', 'nM']
 v_unit_options = ['μM/min', 'μM/s', 'mM/min', 'mM/s', 'M/min', 'M/s', 'nM/min', 'nM/s']
-
-# Create dropdown menus
 S_units = st.sidebar.selectbox(
     "Substrate Units", 
     options=s_unit_options, 
-    index=0  # 'mM' is the default
+    index=0
 ) 
 v_units = st.sidebar.selectbox(
     "Velocity Units", 
     options=v_unit_options, 
-    index=0  # 'μM/min' is the default
+    index=0
 )
-# --- (END MODIFIED) ---
 
 # --- 3. File Uploader ---
 uploaded_file = st.file_uploader("Upload your .csv data file")
@@ -51,21 +45,22 @@ if uploaded_file is not None:
         st.warning("Please ensure your file has columns: 'Substrate_Concentration' and 'Initial_Velocity'")
         st.stop()
 
-    # --- Analysis Logic (Unchanged) ---
-    
-    # 3.A. Non-linear Fit
+    # --- Analysis Logic ---
     def michaelis_menten(S, Vmax, Km):
         return (Vmax * S) / (Km + S)
     
     try:
+        # 3.A. Non-linear Fit
         initial_guesses = [max(v), np.median(S)]
         params, covariance = curve_fit(michaelis_menten, S, v, p0=initial_guesses)
         Vmax_fit = params[0]
         Km_fit = params[1]
 
         # 3.B. Linear Fit
-        inv_S = 1 / S
-        inv_v = 1 / v
+        non_zero_mask = S != 0
+        inv_S = 1 / S[non_zero_mask]
+        inv_v = 1 / v[non_zero_mask]
+        
         regression = linregress(inv_S, inv_v)
         slope = regression.slope
         intercept = regression.intercept
@@ -77,8 +72,7 @@ if uploaded_file is not None:
         st.warning("Could not calculate kinetics. Check your data for outliers or zero values.")
         st.stop()
 
-
-    # --- 5. Display Results (Unchanged) ---
+    # --- 5. Display Results ---
     st.header("📊 Results")
     col1, col2 = st.columns(2) 
 
@@ -115,6 +109,13 @@ if uploaded_file is not None:
             yaxis_title=f'Initial Velocity (v) ({v_units})',
             legend_title="Legend"
         )
+        
+        # --- (MODIFIED) ---
+        # Add the 0,0 lines to the M-M plot
+        fig1.update_yaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
+        fig1.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
+        # --- (END MODIFIED) ---
+        
         st.plotly_chart(fig1, use_container_width=True)
 
 
@@ -141,7 +142,7 @@ if uploaded_file is not None:
         fig2.update_xaxes(zeroline=True, zerolinewidth=1, zerolinecolor='black')
         st.plotly_chart(fig2, use_container_width=True)
 
-# --- How to use guide (Unchanged) ---
+# --- How to use guide ---
 st.header("How to Use")
 st.markdown("""
 1.  **Prepare your data**: Create a `.csv` file with two columns: `Substrate_Concentration` and `Initial_Velocity`.
@@ -149,4 +150,3 @@ st.markdown("""
 3.  **Analyze**: The app will automatically update with your results and plots.
 4.  **Settings**: Use the sidebar to change the units that are displayed on the plots.
 """)
-
