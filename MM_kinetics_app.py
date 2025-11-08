@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
 import numpy as np
-import io  # <-- This library is now essential
+import io
 
 # --- 1. Page Setup ---
 st.set_page_config(
@@ -33,34 +33,59 @@ v_units = st.sidebar.selectbox(
 )
 
 # --- (MODIFIED) 3. Data Entry ---
-st.write("Paste your data below (must include header):")
+st.write("Paste your data columns below. Each value should be on a new line.")
 
-# Create a sample string for the default text
-default_data = "Substrate_Concentration,Initial_Velocity\n1,17.1\n2,29.5\n4,51.2\n8,73.9\n16,102.1\n32,118.5\n50,130.2"
+# Define default data for both boxes
+default_s = "1\n2\n4\n8\n16\n32\n50"
+default_v = "17.1\n29.5\n51.2\n73.9\n102.1\n118.5\n130.2"
 
-data_string = st.text_area(
-    "Data Input", 
-    default_data, 
-    height=200,
-    help="Must have 'Substrate_Concentration' and 'Initial_Velocity' columns."
-)
+col1, col2 = st.columns(2)
+with col1:
+    s_string = st.text_area(
+        "[S] Column (Substrate_Concentration)", 
+        default_s, 
+        height=200,
+        help="Paste one column of numbers, one per line."
+    )
+with col2:
+    v_string = st.text_area(
+        "V0 Column (Initial_Velocity)", 
+        default_v, 
+        height=200,
+        help="Paste one column of numbers, one per line."
+    )
 # --- (END MODIFIED) ---
 
 
 # --- 4. Main Analysis ---
 # --- (MODIFIED) ---
-# Run analysis if the data string is not empty
-if data_string:
+# Run analysis if both strings are not empty
+if s_string and v_string:
     
     try:
-        # Use io.StringIO to read the string as a file
-        data_file_object = io.StringIO(data_string)
-        data = pd.read_csv(data_file_object)
+        # Split the strings by newlines and filter out empty strings
+        s_vals = [val for val in s_string.split() if val]
+        v_vals = [val for val in v_string.split() if val]
+
+        # Check for mismatched lengths
+        if len(s_vals) != len(v_vals):
+            st.error(f"Data Mismatch: You have {len(s_vals)} [S] values but {len(v_vals)} V0 values. Please check your data.")
+            st.stop()
+        
+        # Create the DataFrame
+        data = pd.DataFrame({
+            'Substrate_Concentration': s_vals,
+            'Initial_Velocity': v_vals
+        }).astype(float) # Convert all to numbers
+        
         S = data['Substrate_Concentration']
         v = data['Initial_Velocity']
+        
+    except ValueError:
+        st.error("Error: Could not convert data to numbers. Please make sure you are only pasting numbers (and no text).")
+        st.stop()
     except Exception as e:
         st.error(f"Error reading data: {e}")
-        st.warning("Please check your data format. Ensure it has columns 'Substrate_Concentration' and 'Initial_Velocity'.")
         st.stop()
     # --- (END MODIFIED) ---
 
@@ -94,7 +119,6 @@ if data_string:
     # --- 5. Display Results ---
     st.header("📊 Results")
     col1, col2 = st.columns(2) 
-    # (Rest of this section is unchanged...)
 
     with col1:
         st.subheader("Method 1: Non-linear M-M")
@@ -111,7 +135,7 @@ if data_string:
     fig_col1, fig_col2 = st.columns(2)
 
     with fig_col1:
-        # Plot 1 (Unchanged)
+        # Plot 1: Interactive Michaelis-Menten Plot
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(
             x=S, y=v, mode='markers', name='Experimental Data',
@@ -135,7 +159,7 @@ if data_string:
 
 
     with fig_col2:
-        # Plot 2 (Unchanged)
+        # Plot 2: Interactive Lineweaver-Burk Plot
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
             x=inv_S, y=inv_v, mode='markers', name='Transformed Data',
@@ -160,8 +184,9 @@ if data_string:
 # --- (MODIFIED) How to use guide ---
 st.header("How to Use")
 st.markdown("""
-1.  **Copy your data**: Copy your data from Excel or Google Sheets (including the `Substrate_Concentration` and `Initial_Velocity` headers).
-2.  **Paste**: Paste your data into the text box above, replacing the sample data.
-3.  **Analyze**: The app will automatically update with your results and plots.
-4.  **Settings**: Use the sidebar to change the units that are displayed on the plots.
+1.  **Copy your data**: Copy your `[S]` column from Excel/Sheets.
+2.  **Paste**: Paste into the `[S] Column` box.
+3.  **Repeat**: Copy your `V0` column and paste it into the `V0 Column` box.
+4.  **Analyze**: The app will automatically update. Make sure you have the same number of values in each column!
+5.  **Settings**: Use the sidebar to change the units.
 """)
